@@ -1,0 +1,11 @@
+{
+  "name": "voxlets",
+  "version": "1.0.0",
+  "private": false,
+  "license": "MIT",
+  "description": "Example Voxmate voxlets, buildable by the Voxmate platform via github ident.",
+  "dependencies": {
+    "kengen": "0.1.3",
+    "dayjs": "1.11.13"
+  }
+}

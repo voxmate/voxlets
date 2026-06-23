@@ -1,0 +1,24 @@
+{
+	"name": "MathDoku",
+	"description": "Fill a grid with digits in an arithmetic and logic puzzle that is similar to Sudoku.",
+	"category": "game",
+	"requiredEngineVersion": 1,
+	"settings": {
+		"fields": [
+			{
+				"type": "switch",
+				"target": "playMusicInCages",
+				"name": "Play Music in Cages",
+				"description": "Each number group will have a background tune. Useful for getting an intuitive sense of which number cage you are in.",
+				"default": true
+			},
+			{
+				"type": "switch",
+				"target": "announceEmptySpaces",
+				"name": "Announce Empty Spaces",
+				"description": "A bit clearer, but a seasoned player might find it repetitive",
+				"default": true
+			}
+		]
+	}
+}
