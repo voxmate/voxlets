@@ -1,0 +1,32 @@
+{
+	"name": "voxlet-play",
+	"version": "1.0.0",
+	"description": "",
+	"main": "main.js",
+	"scripts": {
+		"pack": "webpack --config webpack.config.js",
+		"watch": "webpack --config webpack.config.js --watch",
+		"analyze-pack": "webpack --config webpack.config.js --profile --json > stats.json",
+		"analyze-run": "webpack-bundle-analyzer --port 4999 stats.json"
+	},
+	"author": "VOXMATE",
+	"license": "UNLICENSED",
+	"private": true,
+	"dependencies": {
+		"lodash": "4.17.21"
+	},
+	"devDependencies": {
+		"@types/lodash": "4.14.149",
+		"buffer": "6.0.3",
+		"process": "0.11.10",
+		"source-map-cli": "1.0.0",
+		"stream-browserify": "3.0.0",
+		"timers-browserify": "2.0.12",
+		"ts-loader": "9.2.4",
+		"typescript": "4.3.5",
+		"url": "0.11.0",
+		"util": "0.12.4",
+		"webpack": "5.47.1",
+		"webpack-cli": "4.7.2"
+	}
+}

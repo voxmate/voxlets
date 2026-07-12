@@ -1,0 +1,19 @@
+{
+	"name": "Audiobooks",
+	"description": "Find your next audiobook from different Audiobook Providers and play it directly from the app.",
+	"category": "entertainment",
+	"icon": "book",
+	"video": "759aQN78VdM",
+	"build": "compat",
+	"settings": {
+		"fields": [
+			{
+				"type": "credentials",
+				"target": "calibre_credentials",
+				"name": "Calibre Login",
+				"description": "Your Calibre User Account. You can get one at https://www.calibre.org.uk.",
+				"default": null
+			}
+		]
+	}
+}

@@ -1,0 +1,25 @@
+{
+	"name": "voxlet-blackjack",
+	"version": "1.0.0",
+	"description": "",
+	"main": "main.js",
+	"scripts": {
+		"pack": "NODE_OPTIONS=\"--openssl-legacy-provider\" webpack --config webpack.config.js",
+		"watch": "NODE_OPTIONS=\"--openssl-legacy-provider\" webpack --config webpack.config.js --watch",
+		"analyze-pack": "NODE_OPTIONS=\"--openssl-legacy-provider\" webpack --config webpack.config.js --profile --json > stats.json",
+		"analyze-run": "webpack-bundle-analyzer --port 4999 stats.json"
+	},
+	"author": "VOXMATE",
+	"license": "UNLICENSED",
+	"private": true,
+	"dependencies": {
+		"engine-blackjack": "0.9.2"
+	},
+	"devDependencies": {
+		"script-loader": "0.7.2",
+		"ts-loader": "9.2.4",
+		"typescript": "4.3.5",
+		"webpack": "5.47.1",
+		"webpack-cli": "4.7.2"
+	}
+}

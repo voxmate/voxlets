@@ -1,0 +1,26 @@
+{
+	"name": "Radio",
+	"description": "Create your own curated list of channels from more than 120 000 streaming radio stations.",
+	"category": "entertainment",
+	"icon": "radio",
+	"video": "MlYErhZqV3Q",
+	"build": "compat",
+	"settings": {
+		"fields": [
+			{
+				"type": "switch",
+				"target": "group",
+				"name": "Grouping Stations",
+				"description": "Allows to group stations into a menu-like structure. Useful when you have a lot of stations.",
+				"default": false
+			},
+			{
+				"type": "radio-search",
+				"target": "stations",
+				"name": "Manage Your Stations",
+				"description": "",
+				"default": []
+			}
+		]
+	}
+}

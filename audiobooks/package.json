@@ -1,0 +1,35 @@
+{
+	"name": "voxlet-audiobooks",
+	"version": "1.0.0",
+	"description": "",
+	"main": "main.js",
+	"scripts": {
+		"pack": "NODE_OPTIONS=\"--openssl-legacy-provider\" webpack --config webpack.config.js",
+		"watch": "NODE_OPTIONS=\"--openssl-legacy-provider\" webpack --config webpack.config.js --watch",
+		"analyze-pack": "NODE_OPTIONS=\"--openssl-legacy-provider\" webpack --config webpack.config.js --profile --json > stats.json",
+		"analyze-run": "webpack-bundle-analyzer --port 4999 stats.json"
+	},
+	"author": "VOXMATE",
+	"license": "UNLICENSED",
+	"private": true,
+	"dependencies": {
+		"@types/cheerio": "0.22.24",
+		"cheerio": "1.0.0-rc.5",
+		"form-urlencoded": "4.2.1",
+		"lodash": "4.17.21"
+	},
+	"devDependencies": {
+		"@types/node": "14.14.16",
+		"@types/lodash": "^4.14.172",
+		"buffer": "6.0.3",
+		"process": "0.11.10",
+		"stream-browserify": "3.0.0",
+		"timers-browserify": "2.0.12",
+		"ts-loader": "9.2.4",
+		"typescript": "4.3.5",
+		"url": "0.11.0",
+		"util": "0.12.4",
+		"webpack": "5.47.1",
+		"webpack-cli": "4.7.2"
+	}
+}

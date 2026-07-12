@@ -1,0 +1,19 @@
+{
+	"name": "Audio Clips",
+	"description": "Audio Clips - Internal Clips Testing Voxlet.",
+	"category": "development",
+	"requiredEngineVersion": 1,
+	"development": true,
+	"hidden": true,
+	"settings": {
+		"fields": [
+			{
+				"type": "textarea",
+				"target": "urls",
+				"name": "Audio File URLS",
+				"description": "Add Audio File URLs here. You can add more than one, one on each line.",
+				"default": ""
+			}
+		]
+	}
+}

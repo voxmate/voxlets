@@ -1,0 +1,8 @@
+{
+	"name": "News",
+	"description": "Catch up with the latest news from a curated list of some of the most popular news outlets.",
+	"icon": "news",
+	"category": "entertainment",
+	"video": "ppNIBwD79hE",
+	"build": "compat"
+}

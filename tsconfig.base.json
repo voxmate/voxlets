@@ -1,0 +1,18 @@
+{
+	"compilerOptions": {
+		"allowSyntheticDefaultImports": true,
+		"experimentalDecorators": true,
+		"module": "esnext",
+		"target": "es2015",
+		"sourceMap": true,
+		"moduleResolution": "node",
+		"ignoreDeprecations": "6.0",
+		"resolveJsonModule": true,
+		"lib": ["es2017"]
+	},
+	"include": [
+		"${configDir}/**/*.ts",
+		"${configDir}/../node_modules/@voxmate/voxmate/types.d.ts"
+	],
+	"exclude": ["${configDir}/node_modules"]
+}

@@ -1,6 +1,6 @@
 import {IMathDokuGameState, MathDokuDifficulty, MathDokuGame} from "./activities/MathDokuGame";
-import voxmate from "voxmate/voxmate";
-import {Activity, IService} from "voxmate/orc/orc";
+import voxmate from "@voxmate/voxmate";
+import {Activity, IService} from "@voxmate/orc/orc";
 import {MathdokuSettings} from "./voxlet.types";
 
 

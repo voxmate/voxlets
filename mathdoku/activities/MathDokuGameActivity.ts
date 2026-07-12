@@ -1,11 +1,11 @@
-import {IBackgroundSoundController, RollActivity} from "voxmate/orc/RollActivity";
+import {IBackgroundSoundController, RollActivity} from "@voxmate/orc/RollActivity";
 import {MathDokuDifficulty, MathDokuGame, MathDokuGameVictory, Region} from "./MathDokuGame";
-import {NavigatorActivity} from "voxmate/navigation/NavigatorActivity";
-import {Actor, Sound} from "voxmate/voxmate";
+import {NavigatorActivity} from "@voxmate/orc/navigation/NavigatorActivity";
+import {Actor, Sound} from "@voxmate/voxmate";
 import {MathDokuGameManager} from "../manager";
 import {MathDokuHelpActivity} from "./MathDokuHelpActivity";
-import {formatDuration} from "voxmate/utility/strings";
-import {VoxletSettingsManager} from "voxmate/orc/VoxletSettingsManager";
+import {formatDuration} from "@voxmate/voxmate/utility/strings";
+import {VoxletSettingsManager} from "@voxmate/orc/VoxletSettingsManager";
 import {MathdokuSettings} from "../voxlet.types";
 
 const decoder = {

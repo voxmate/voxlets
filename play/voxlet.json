@@ -1,0 +1,31 @@
+{
+	"name": "Play",
+	"description": "Play - Internal Feature Testing Voxlet.",
+	"category": "development",
+	"requiredEngineVersion": 1,
+	"development": true,
+	"build": "compat",
+	"settings": {
+		"fields": [
+			{
+				"type": "switch",
+				"target": "test",
+				"name": "Test Switch",
+				"description": "Flick it, and see all that can be.",
+				"default": true
+			},
+			{
+				"type": "select",
+				"target": "otest",
+				"options": {
+					"a": {
+						"name": "A Value ",
+						"description": "This is a long description of the A-value"
+					},
+					"b": "B Value"
+				},
+				"default": "a"
+			}
+		]
+	}
+}

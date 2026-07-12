@@ -1,4 +1,4 @@
-import {RollActivity} from "voxmate/orc/RollActivity";
+import {RollActivity} from "@voxmate/orc/RollActivity";
 
 export class MathDokuHelpActivity extends RollActivity {
     protected async run(): Promise<void | any> {
