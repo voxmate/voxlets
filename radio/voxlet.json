@@ -1,4 +1,6 @@
 {
+	"permissions": {"required": ["network"]},
+	"hosts": ["apis.voxmate.com", "tunein.com"],
 	"name": "Radio",
 	"description": "Create your own curated list of channels from more than 120 000 streaming radio stations.",
 	"category": "entertainment",

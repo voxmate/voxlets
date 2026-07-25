@@ -1,4 +1,5 @@
 {
+	"permissions": {"required": ["apps"]},
 	"name": "Fileplayer",
 	"description": "Play audio files stored on your device or an SD card - may it be music, or an audiobook.",
 	"category": "utility",

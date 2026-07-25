@@ -1,4 +1,5 @@
 {
+	"permissions": {"required": ["unrestricted-network"]},
 	"name": "Audiobooks",
 	"description": "Find your next audiobook from different Audiobook Providers and play it directly from the app.",
 	"category": "entertainment",

@@ -1,4 +1,6 @@
 {
+	"permissions": {"required": ["network"], "optional": ["clipboard", "apps"]},
+	"hosts": ["apis.voxmate.com"],
 	"name": "YouTube",
 	"description": "Watch educational or entertaining videos on any topic you can think of.",
 	"category": "entertainment",

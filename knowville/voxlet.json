@@ -1,4 +1,5 @@
 {
+	"permissions": {"required": ["unrestricted-network"]},
 	"name": "Knowledge Village",
 	"description": "Henshaws’ Knowledge Village is a home for articles, videos, tips, tricks and useful information for the visually impaired.",
 	"category": "reference",
