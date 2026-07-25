@@ -1,5 +1,5 @@
 {
-	"permissions": {"required": ["unrestricted-network"], "optional": ["clipboard"]},
+	"permissions": {"required": ["unrestricted-network"], "optional": ["clipboard", "apps"]},
 	"name": "News",
 	"description": "Catch up with the latest news from a curated list of some of the most popular news outlets.",
 	"icon": "news",
