@@ -5,8 +5,8 @@
   "license": "MIT",
   "description": "Voxmate-provided public voxlets, buildable by the Voxmate platform via github ident (github.com/voxmate/voxlets/<name>).",
   "dependencies": {
-    "@voxmate/orc": "^0.2.3",
-    "@voxmate/voxmate": "^0.1.1",
+    "@voxmate/orc": "^0.4.0",
+    "@voxmate/voxmate": "^0.2.0",
     "cheerio": "1.0.0-rc.10",
     "dayjs": "1.11.13",
     "engine-blackjack": "0.9.2",
