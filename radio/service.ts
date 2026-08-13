@@ -170,7 +170,7 @@ export class RadioService implements IService {
 
         if (settings.stations.length != prunedStations.length) {
             settings.stations = prunedStations;
-            await this.root.saveVoxletSettings(settings);
+            await this.root.patchVoxletSettings({stations: prunedStations});
         }
 
         return settings;
@@ -185,23 +185,22 @@ export class RadioService implements IService {
     }
 
     async addStationToFavorites(station: IStation) {
-        const settings = await this.getSettings();
+        const settings = await this.getSettings(true);
         if (await this.isStationFavorite(station))
             return;
 
         settings.stations.push(station);
-        console.log("Saving", settings);
-        await this.root.saveVoxletSettings(settings);
+        await this.root.patchVoxletSettings({stations: settings.stations});
     }
 
     async addStationToGroup(station: IStation, group: string) {
-        const settings = await this.getSettings();
+        const settings = await this.getSettings(true);
 
         for (let s of settings.stations) {
             if (s.id == station.id) {
                 s.group = group;
 
-                await this.root.saveVoxletSettings(settings);
+                await this.root.patchVoxletSettings({stations: settings.stations});
 
                 station.group = group;
                 return true;
@@ -212,17 +211,17 @@ export class RadioService implements IService {
     }
 
     async removeStationFromFavorites(station: IStation) {
-        const settings = await this.getSettings();
+        const settings = await this.getSettings(true);
 
         if (!await this.isStationFavorite(station))
             return;
 
         settings.stations = settings.stations.filter(s => s.id !== station.id);
-        await this.root.saveVoxletSettings(settings);
+        await this.root.patchVoxletSettings({stations: settings.stations});
     }
 
     async moveStationToTopOfFavorites(station: IStation) {
-        const settings = await this.getSettings();
+        const settings = await this.getSettings(true);
 
         if (settings.stations.length < 2)
             return true;
@@ -246,7 +245,7 @@ export class RadioService implements IService {
             const [a, b] = [st[0], st[idx]];
             [st[0], st[idx]] = [b, a];
 
-            await this.root.saveVoxletSettings(settings);
+            await this.root.patchVoxletSettings({stations: st});
             return true;
         }
 
