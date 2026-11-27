@@ -63,7 +63,7 @@ class GatherForPartyActivity extends GameCenterBaseActivity<GatherForPartyResult
                 try {
                     await this.freeze(this.gatherForParty(this.partyId));
                 } catch (e) {
-                    if (e instanceof BackendCallError && e.status === 409)
+                    if (e instanceof BackendCallError && (e.status === 409 || e.status === 403 || e.status === 404))
                         return "aborted";
                     throw e;
                 }
