@@ -18,6 +18,12 @@ interface IClientUpdate {
     channel?: string;
 }
 
+interface ISetNickResult {
+    ok: boolean;
+    nick: string;
+    userId?: string;
+}
+
 export class VoxLiveChat extends RPCSocketActivity {
 
     private readonly chat!: VoxLiveChatService;
@@ -34,22 +40,26 @@ export class VoxLiveChat extends RPCSocketActivity {
         await this.rpc.call("post", {text: text});
     }
 
-    private async setNick(nick: string) {
-        await this.rpc.call("setNick", {nick: nick});
+    private async setNick(nick: string): Promise<ISetNickResult | null | undefined> {
+        return await this.rpc.call<ISetNickResult | null | undefined>("setNick", {nick: nick});
     }
 
     protected async init() {
         await super.init();
         const timer = new Date().getTime();
 
-        await this.setNick(this.chatSettings.nick);
+        const nickResult = await this.setNick(this.chatSettings.nick);
+        if (nickResult?.userId) {
+            this.chat.userId = nickResult.userId;
+        } else {
+            const profile = await this.wrap(voxmate.system.profile());
+            this.chat.userId = profile.userId;
+        }
+
         await Promise.all([this.updateHistory(), this.joinVoxTeamChannel()]);
 
         const timeTaken = (new Date().getTime()) - timer;
         console.log("Connection took: ", timeTaken, "(ms)");
-
-        const profile = await this.wrap(voxmate.system.profile());
-        this.chat.userId = profile.userId;
     }
 
     private async announceMessage(message: IChatMessage) {

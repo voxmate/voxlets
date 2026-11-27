@@ -48,12 +48,14 @@ function toLaunchPlayers(players?: IGameCenterPartyPlayer[]): Record<string, { n
     return Object.keys(out).length > 0 ? out : undefined;
 }
 
-class GatherForPartyActivity extends GameCenterBaseActivity<boolean> {
+type GatherForPartyResult = boolean | "aborted";
+
+class GatherForPartyActivity extends GameCenterBaseActivity<GatherForPartyResult> {
     constructor(private readonly partyId?: string) {
         super();
     }
 
-    protected async run(): Promise<boolean> {
+    protected async run(): Promise<GatherForPartyResult> {
         while (this.isActive) {
             let ui = await this.sayInfo("Your party is ready. Double tap to confirm when you are ready to begin.");
             ui = ui ?? await this.getWithTimeout(5000);
@@ -102,9 +104,31 @@ export class GameCenterPurgatoryActivity extends RPCSocketActivity<IPurgatoryAct
         );
     }
 
+    private endIfTerminalPartyUpdate(party: IGameCenterParty): boolean {
+        if (this.ended)
+            return true;
+
+        if (isTerminalStatus(party.status)) {
+            this.end({ok: false});
+            return true;
+        }
+        if (party.me?.member === false) {
+            this.end({ok: false, error: "Leaving the party"});
+            return true;
+        }
+        if (party.status === "playing") {
+            this.end({ok: true, party});
+            return true;
+        }
+        return false;
+    }
+
     @subscribe("update", false)
     private async onReceivedPartyUpdate(party: IGameCenterParty) {
         this.party = party;
+        if (this.endIfTerminalPartyUpdate(party))
+            return;
+
         this.setTimeout(async () => {
             await this.handlePartyUpdate(party);
         });
@@ -121,15 +145,21 @@ export class GameCenterPurgatoryActivity extends RPCSocketActivity<IPurgatoryAct
     }
 
     private async handlePartyUpdate(party: IGameCenterParty) {
-        if (this.ended)
+        if (this.endIfTerminalPartyUpdate(party))
             return;
 
         if (isWaitingStatus(party.status)) {
+            const wasGathering = this.gatherForPartyActivity !== null || this.gatheredForId !== null;
+            this.gatheredForId = null;
+
             if (this.gatherForPartyActivity) { // transition from 'gathering' -> 'waiting'
                 console.log("Transitioning from Gathering -> Waiting");
-                this.gatherForPartyActivity.end(true);
+                const activeGather = this.gatherForPartyActivity;
                 this.gatherForPartyActivity = null;
+                activeGather.end("aborted");
+            }
 
+            if (wasGathering) {
                 await this.do(async () => {
                     await this.sayInfo("A player didn't show up for the game. Back to the queue.");
                 });
@@ -137,22 +167,33 @@ export class GameCenterPurgatoryActivity extends RPCSocketActivity<IPurgatoryAct
         } else if (party.status === "gathering") { // transition from 'waiting' to 'gathering'
             const gatheringId = party.gatheringId ?? party.roomId ?? party.partyId;
 
-            if (party.me?.gathered)
+            if (party.me?.gathered) {
                 this.gatheredForId = gatheringId;
+            } else if (party.me?.gathered === false && this.gatheredForId === gatheringId) {
+                this.gatheredForId = null;
+            }
 
-            if (this.gatheredForId === gatheringId) {
+            if (this.gatheredForId === gatheringId && party.me?.gathered !== false) {
                 return;
             }
 
             if (this.gatherForPartyActivity === null) {
+                const gatherActivity = new GatherForPartyActivity(party.partyId || this.getRoomId());
+                this.gatherForPartyActivity = gatherActivity;
+                const gathered = await this.do(() => this.exec(gatherActivity));
+                if (this.gatherForPartyActivity === gatherActivity) {
+                    this.gatherForPartyActivity = null;
+                }
 
-                this.gatherForPartyActivity = new GatherForPartyActivity(party.partyId || this.getRoomId());
-                const gathered = await this.do(() => this.exec(this.gatherForPartyActivity!));
-                this.gatherForPartyActivity = null;
+                if (this.ended || gathered === "aborted") {
+                    return;
+                }
 
-                if (gathered) {
+                if (gathered === true) {
                     this.sound(Sound.Good);
-                    this.gatheredForId = gatheringId;
+                    if (!this.party || !isWaitingStatus(this.party.status)) {
+                        this.gatheredForId = gatheringId;
+                    }
                 } else {
                     this.sound(Sound.Bad);
                     this.end({
@@ -162,10 +203,6 @@ export class GameCenterPurgatoryActivity extends RPCSocketActivity<IPurgatoryAct
                     return;
                 }
             }
-        } else if (party.status === "playing") {
-            this.end({ok: true, party});
-        } else if (isTerminalStatus(party.status)) {
-            this.end({ok: false});
         }
     }
 
@@ -237,7 +274,7 @@ export class GameCenterPurgatoryActivity extends RPCSocketActivity<IPurgatoryAct
 
         this.setupPeriodicBumping();
 
-        if (this.party && !isWaitingStatus(this.party.status)) {
+        if (this.party && (!isWaitingStatus(this.party.status) || this.party.me?.member === false)) {
             await this.handlePartyUpdate(this.party);
             if (this.ended)
                 return;
@@ -249,7 +286,7 @@ export class GameCenterPurgatoryActivity extends RPCSocketActivity<IPurgatoryAct
             await this.delay(5000);
 
             if (this.party && this.party.me && !this.party.me.member) {
-                await this.sayInfo("Leaving the party");
+                this.end({ok: false, error: "Leaving the party"});
                 return;
             }
 
