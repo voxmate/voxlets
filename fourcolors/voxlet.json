@@ -1,0 +1,19 @@
+{
+	"permissions": {"required": ["network"]},
+	"name": "Four Colors",
+	"description": "A Fun Shredding Card Game",
+	"category": "game",
+	"requiredEngineVersion": 1,
+	"development": false,
+	"hidden": true,
+	"gamecenter": {
+		"priority": 3,
+		"mature": false,
+		"players": 2,
+		"setup": false,
+		"parameters": {
+			"pace": [60, 300]
+		}
+	},
+	"settings": {}
+}

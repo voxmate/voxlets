@@ -1,0 +1,13 @@
+{
+	"name": "voxlet-fourcolors",
+	"version": "1.0.0",
+	"description": "",
+	"main": "main.js",
+	"author": "VOXMATE",
+	"license": "MIT",
+	"private": true,
+	"dependencies": {
+		"@voxmate/orc": "^0.4.0",
+		"@voxmate/voxmate": "^0.2.0"
+	}
+}

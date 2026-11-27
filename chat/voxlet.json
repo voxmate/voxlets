@@ -1,0 +1,10 @@
+{
+	"permissions": {"required": ["network"]},
+	"name": "Chat",
+	"description": "Message Voxmate Team with your questions or interesting comments.",
+	"category": "social",
+	"icon": "comments",
+	"requiredEngineVersion": 1,
+	"development": false,
+	"settings": {}
+}

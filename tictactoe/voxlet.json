@@ -1,0 +1,15 @@
+{
+	"permissions": {"required": ["network"]},
+	"name": "Tic Tac Toe",
+	"description": "An audio version of a simple pen-and-paper game",
+	"category": "game",
+	"requiredEngineVersion": 1,
+	"development": false,
+	"hidden": true,
+	"gamecenter": {
+		"priority": 100,
+		"mature": false,
+		"players": 2
+	},
+	"settings": {}
+}

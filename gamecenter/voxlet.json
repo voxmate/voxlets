@@ -1,0 +1,9 @@
+{
+	"permissions": {"required": ["network", "apps"]},
+	"name": "Game Club",
+	"description": "Play network games with other Voxmate users, add them to your friend list and have a little chat before the play.",
+	"category": "game",
+	"requiredEngineVersion": 1,
+	"development": false,
+	"settings": {}
+}
