@@ -88,7 +88,7 @@ export class RadioService implements IService {
     private async getStationFromDescriptor(context: RichActivity, descriptor: IStationDescriptor): Promise<IStation | null> {
 
         const backend = useBackend<typeof RadioBackendContract>();
-        const station = await backend.resolveStreams({guideId: descriptor.id});
+        const station = await context.wrapAny(backend.resolveStreams({guideId: descriptor.id}));
         await context.haltIfEnded();
 
         if (!station || !station.compatible || !station.url) {
@@ -100,8 +100,9 @@ export class RadioService implements IService {
         const streamUrl = shouldResolve
             ? await resolvePlaylistUrl(context, station.url)
             : station.url;
+        const stillPlaylist = Boolean(station.isPlaylist && streamUrl === station.url);
 
-        return {...descriptor, url: streamUrl, group: "", isPlaylist: false};
+        return {...descriptor, url: streamUrl, group: "", isPlaylist: stillPlaylist};
     }
 
     async getFavoriteStations(): Promise<IFavoriteStations> {
@@ -153,6 +154,7 @@ export class RadioService implements IService {
                 throw e;
             if (e === RestartRadio)
                 throw e;
+            await context.haltIfEnded();
             await context.sayInfo("Unable to reach Voxmate Server");
         }
     }
@@ -217,10 +219,22 @@ export class RadioService implements IService {
 
         const options = context.roll();
 
-        let descriptor: IStation;
-        if ("id" in station)
-            descriptor = await this.getStationFromDescriptor(context, station);
-        else descriptor = station;
+        let descriptor: IStation | null;
+        if (!("url" in station)) {
+            try {
+                descriptor = await this.getStationFromDescriptor(context, station);
+            } catch (e) {
+                if (context.isFlowControl(e))
+                    throw e;
+                if (e === RestartRadio)
+                    throw e;
+                await context.haltIfEnded();
+                await context.sayInfo("Unable to reach Voxmate Server");
+                return;
+            }
+        } else {
+            descriptor = { ...station, group: station.group ?? "" };
+        }
 
         if (descriptor == null) {
             context.sound(Sound.EndContent);
