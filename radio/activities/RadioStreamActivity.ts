@@ -2,19 +2,36 @@ import {BasePlayer, PlayerOptions} from "@voxmate/orc/player";
 
 import voxmate, {ICastStreamInspectionResult} from "@voxmate/voxmate";
 import {Activity} from "@voxmate/orc/orc";
-import {RadioService} from "../service";
+import {isPlaylistUrl, RadioService, resolvePlaylistUrl} from "../service";
 import {IStation, RestartRadio} from "../common/common.radio";
 
 export class RadioStreamActivity extends BasePlayer {
+
+    private resolvedUrl: string;
+    private readonly urlPreResolved: boolean;
 
     get radio(): RadioService {
         return this[RadioService.inject];
     }
 
-    constructor(private readonly station: IStation) {
+    constructor(private readonly station: IStation, resolvedUrl?: string) {
         super();
+        this.resolvedUrl = resolvedUrl ?? station.url;
+        this.urlPreResolved = resolvedUrl !== undefined;
         this.disableSeek();
         this.enableHint("During playback, swipe right for track info");
+    }
+
+    protected override async init(): Promise<void> {
+        if (
+            !this.urlPreResolved &&
+            Boolean(this.resolvedUrl) &&
+            !this.resolvedUrl.endsWith("+++hls") &&
+            (this.station.isPlaylist === true || isPlaylistUrl(this.resolvedUrl))
+        ) {
+            this.resolvedUrl = await resolvePlaylistUrl(this, this.resolvedUrl);
+        }
+        await super.init();
     }
 
     protected useStreamingPlayer(): boolean {
@@ -22,12 +39,12 @@ export class RadioStreamActivity extends BasePlayer {
     }
 
     protected getPlayerResourceId(): string {
-        return this.station.url;
+        return this.resolvedUrl;
     }
 
     protected async rightAction(): Promise<PlayerOptions> {
 
-        const url = this.station.url;
+        const url = this.resolvedUrl;
 
         class CheckTrackDetails extends Activity {
 
@@ -66,7 +83,7 @@ export class RadioStreamActivity extends BasePlayer {
     }
 
     protected async run(): Promise<any> {
-        console.log("Streaming...", this.station.url);
+        console.log("Streaming...", this.resolvedUrl);
         return super.run();
     }
 }

@@ -27,22 +27,54 @@ abstract class RadioBackendContract {
     abstract resolveStreams(input: { guideId: string }): Promise<ResolvedStreamResponse>;
 }
 
-function extractStreamFromPlaylist(content: string): string | null {
-    const lines = content.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+const MAX_PLAYLIST_BYTES = 65536;
+const MAX_PLAYLIST_LINES = 200;
+const HTTP_URL_REGEX = /^https?:\/\/\S+$/i;
+
+export function isPlaylistUrl(url: string): boolean {
+    if (!url || url.endsWith("+++hls"))
+        return false;
+    return /\.(pls|m3u)([?#].*)?$/i.test(url);
+}
+
+export function extractStreamFromPlaylist(content: string): string | null {
+    const bounded = content.slice(0, MAX_PLAYLIST_BYTES);
+    const lines = bounded
+        .split(/\r?\n/, MAX_PLAYLIST_LINES)
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
     // PLS format: File1=https://...
     for (const line of lines) {
-        const match = /^file\d+\s*=\s*(https?:\/\/\S+)/i.exec(line);
-        if (match)
+        const match = /^file\d+\s*=\s*(\S+)/i.exec(line);
+        if (match && HTTP_URL_REGEX.test(match[1]))
             return match[1];
     }
     // M3U format: first non-comment HTTP(S) URL line
     for (const line of lines) {
         if (line.startsWith("#"))
             continue;
-        if (/^https?:\/\//i.test(line))
+        if (HTTP_URL_REGEX.test(line))
             return line;
     }
     return null;
+}
+
+export async function resolvePlaylistUrl(context: Activity, url: string): Promise<string> {
+    try {
+        const response = await context.wrap(
+            voxmate.http.request(url, "GET", "", {"Range": "bytes=0-65535"})
+        );
+        if (response.ok && response.content) {
+            const extracted = extractStreamFromPlaylist(response.content);
+            if (extracted && /^https?:\/\//i.test(extracted))
+                return extracted;
+        }
+    } catch (e) {
+        if (context.isFlowControl(e))
+            throw e;
+        console.log("Failed to resolve playlist URL, falling back to original URL", e);
+    }
+    return url;
 }
 
 export class RadioService implements IService {
@@ -53,35 +85,23 @@ export class RadioService implements IService {
 
     }
 
-    private async resolvePlaylistUrl(context: RichActivity, url: string): Promise<string> {
-        try {
-            const response = await context.wrap(voxmate.http.request(url, "GET", "", {}));
-            if (response.ok && response.content) {
-                const extracted = extractStreamFromPlaylist(response.content);
-                if (extracted)
-                    return extracted;
-            }
-        } catch (e) {
-            console.log("Failed to resolve playlist URL, falling back to original URL", e);
-        }
-        return url;
-    }
-
     private async getStationFromDescriptor(context: RichActivity, descriptor: IStationDescriptor): Promise<IStation | null> {
 
         const backend = useBackend<typeof RadioBackendContract>();
         const station = await backend.resolveStreams({guideId: descriptor.id});
+        await context.haltIfEnded();
 
         if (!station || !station.compatible || !station.url) {
             await context.sayDynamicInfo(`Sorry, I am unable to get a compatible stream for ${descriptor.name}`);
             return null;
         }
 
-        const streamUrl = station.isPlaylist
-            ? await this.resolvePlaylistUrl(context, station.url)
+        const shouldResolve = !station.url.endsWith("+++hls") && (station.isPlaylist === true || isPlaylistUrl(station.url));
+        const streamUrl = shouldResolve
+            ? await resolvePlaylistUrl(context, station.url)
             : station.url;
 
-        return {...descriptor, url: streamUrl, group: ""};
+        return {...descriptor, url: streamUrl, group: "", isPlaylist: false};
     }
 
     async getFavoriteStations(): Promise<IFavoriteStations> {
@@ -126,9 +146,11 @@ export class RadioService implements IService {
         try {
             const station = await this.getStationFromDescriptor(context, descriptor);
             if (station != null)
-                await context.exec(new RadioStreamActivity(station));
+                await context.exec(new RadioStreamActivity(station, station.url));
 
         } catch (e) {
+            if (context.isFlowControl(e))
+                throw e;
             if (e === RestartRadio)
                 throw e;
             await context.sayInfo("Unable to reach Voxmate Server");

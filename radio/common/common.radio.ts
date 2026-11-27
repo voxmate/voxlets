@@ -12,6 +12,7 @@ export interface IStation extends IStationDescriptor {
     description: string;
     url: string;
     group: string;
+    isPlaylist?: boolean;
 }
 
 export interface IStationGroup {

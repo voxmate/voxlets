@@ -2,7 +2,7 @@ import {RadioStreamActivity} from "./RadioStreamActivity";
 import {IFavoriteStations, IStation, RestartRadio} from "../common/common.radio";
 import {RadioBrowseLocalStationsActivity} from "./RadioBrowseLocalStationsActivity";
 import {Rolodex} from "@voxmate/orc/rolodex";
-import {RadioService} from "../service";
+import {isPlaylistUrl, RadioService, resolvePlaylistUrl} from "../service";
 import {RichActivity} from "@voxmate/orc/RichActivity";
 import {RadioSearchActivity} from "./RadioSearchActivity";
 import {VoxletSettingsManager} from "@voxmate/orc/VoxletSettingsManager";
@@ -27,7 +27,12 @@ export class RadioMainActivity extends RichActivity {
             await this.sayDynamicContent(`${station.name}`);
             await rolodex.paginate(index, n);
         }, async () => {
-            const activity = new RadioStreamActivity(station);
+            const shouldResolve = Boolean(station.url) && !station.url.endsWith("+++hls")
+                && (station.isPlaylist === true || isPlaylistUrl(station.url));
+            const resolvedUrl = shouldResolve
+                ? await resolvePlaylistUrl(this, station.url)
+                : station.url;
+            const activity = new RadioStreamActivity(station, resolvedUrl);
             await this.exec(activity);
         }).expand(async () => {
             await this.radio.runStationOptions(this, station);
