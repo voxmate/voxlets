@@ -60,7 +60,13 @@ class GatherForPartyActivity extends GameCenterBaseActivity<GatherForPartyResult
             let ui = await this.sayInfo("Your party is ready. Double tap to confirm when you are ready to begin.");
             ui = ui ?? await this.getWithTimeout(5000);
             if (ui && ui.kind == "gesture" && ui.gesture == Gesture.DoubleTap) {
-                await this.freeze(this.gatherForParty(this.partyId));
+                try {
+                    await this.freeze(this.gatherForParty(this.partyId));
+                } catch (e) {
+                    if (e instanceof BackendCallError && e.status === 409)
+                        return "aborted";
+                    throw e;
+                }
                 return true;
             }
         }
