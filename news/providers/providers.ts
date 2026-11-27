@@ -23,6 +23,7 @@ export interface INewsArticleDescriptor {
     url: string;
     publicationDate?: Date;
     author?: Sayable;
+    summary?: string;
 }
 
 export type NewsSectionKind = "paragraphs" | "header" | "figure" | "feature" | "feature-title"
@@ -97,6 +98,92 @@ function cleanXMLTitle(text: string) {
     return text.replace(/&apos;/gmi, "'"); //&apos; invalid chars
 }
 
+export interface ICleanedHtmlArticle {
+    title: string;
+    content: string;
+    author?: string;
+    datePublished?: string;
+    excerpt?: string;
+}
+
+export function stripHtmlToText(html: string): string {
+    const withoutBlocks = html
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+        .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, " ");
+    const $ = cheerio.load(withoutBlocks);
+    $("script, style, noscript").remove();
+    return $.root().text().replace(/\s+/g, " ").trim();
+}
+
+export function extractReadableHtml(html: string): ICleanedHtmlArticle | null {
+    const withoutBlocks = html
+        .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+        .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+        .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, "");
+
+    const $ = cheerio.load(withoutBlocks);
+
+    const title =
+        $("meta[property='og:title']").attr("content")?.trim() ||
+        $("meta[name='twitter:title']").attr("content")?.trim() ||
+        $("h1").first().text().trim() ||
+        $("title").first().text().trim() ||
+        "";
+
+    const author =
+        $("meta[name='author']").attr("content")?.trim() ||
+        $("meta[property='article:author']").attr("content")?.trim() ||
+        $("[rel='author']").first().text().trim() ||
+        undefined;
+
+    const datePublished =
+        $("meta[property='article:published_time']").attr("content")?.trim() ||
+        $("time[datetime]").first().attr("datetime")?.trim() ||
+        undefined;
+
+    const excerpt =
+        $("meta[property='og:description']").attr("content")?.trim() ||
+        $("meta[name='description']").attr("content")?.trim() ||
+        "";
+
+    $("script, style, noscript, iframe, svg, canvas, nav, footer, aside, form, button").remove();
+    $("body > header").remove();
+
+    const candidates = [
+        $("article").first(),
+        $("main").first(),
+        $("[role='main']").first(),
+        $("body").first(),
+        $.root(),
+    ];
+
+    let contentHtml = "";
+    for (const candidate of candidates) {
+        if (!candidate || candidate.length === 0) continue;
+        if (candidate.find("p").text().trim().length > 0) {
+            contentHtml = candidate.html() || "";
+            break;
+        }
+    }
+
+    if (!contentHtml) {
+        const fallbackText = $.root().text().replace(/\s+/g, " ").trim();
+        if (!fallbackText) return null;
+        const wrapped = cheerio.load("<p></p>");
+        wrapped("p").text(fallbackText);
+        contentHtml = wrapped("p").parent().html() || "";
+    }
+
+    return {
+        title,
+        content: contentHtml,
+        author,
+        datePublished,
+        excerpt,
+    };
+}
+
 export type MercuryDocument = {
     title: string;
     content: string;
@@ -164,48 +251,55 @@ export class Browser implements IService {
         return null;
     }
 
+    async getDirectArticle(url: string, headers: any = {}): Promise<ICleanedHtmlArticle | "paywalled" | null> {
+        const result = await this.httpGetFollowSoftRedirects(url, headers);
+        if (result.code === 402) {
+            return "paywalled";
+        }
+        if (!result.ok || !result.content) {
+            return null;
+        }
+        return extractReadableHtml(result.content);
+    }
+
     async getWithMercury(url: string): Promise<MercuryDocument | null | "paywalled" | "error"> {
-
-        const api = "https://news-dot-voxlet-sys.appspot.com/api/clean_article";
-        const data = await this.root.httpPostJson(api, {
-            url: url
-        });
-
-        if (data.isValidJson) {
-            const payload = JSON.parse(data.content);
-            if (payload.ok === false) {
-                return null;
-            }
-
-            if (payload.error) {
-                const msg = payload.message;
-                if (msg && typeof msg === "string") {
-                    if (msg.indexOf("402") !== -1) {
-                        return "paywalled";
-                    }
-                }
-                return "error";
-            }
-
-            return payload;
+        const cleaned = await this.getDirectArticle(url);
+        if (cleaned === "paywalled" || cleaned === null) {
+            return cleaned;
         }
 
-        return null;
+        const plainText = stripHtmlToText(cleaned.content);
+        const wordCount = plainText ? plainText.split(/\s+/).length : 0;
+
+        return {
+            title: cleaned.title,
+            content: cleaned.content,
+            author: cleaned.author ?? null,
+            date_published: cleaned.datePublished ?? null,
+            lead_image_url: "",
+            url: url,
+            domain: "",
+            excerpt: cleaned.excerpt ?? "",
+            word_count: wordCount,
+            direction: "ltr",
+            total_pages: 1,
+            rendered_pages: 1,
+        };
     }
 
     async getWithReadability(url: string): Promise<ReadabilityDocument | null> {
-
-        const endpoint = "https://clearnews.run.voxmate.com/getUrlContent";
-        const result = await this.root.httpPostJson(endpoint, {url: url});
-
-        if (!result.ok)
+        const cleaned = await this.getDirectArticle(url);
+        if (cleaned === "paywalled" || cleaned === null) {
             return null;
+        }
 
-        const doc = JSON.parse(result.content) as { ok: boolean, article: ReadabilityDocument };
-        if (!doc.ok)
-            return null;
-
-        return doc.article;
+        return {
+            title: cleaned.title,
+            byline: cleaned.author ?? "",
+            dir: null,
+            content: cleaned.content,
+            excerpt: cleaned.excerpt ?? "",
+        };
     }
 }
 
@@ -603,6 +697,14 @@ export abstract class RssFeedBasedNewsProvider<TConfig extends IRssFeedNewsProvi
         return "<UNKNONWN>";
     }
 
+    private extractOptional(item): string | undefined {
+        if (!item) return undefined;
+        if (typeof item === "string") return item;
+        if (item.hasOwnProperty("_text")) return item["_text"];
+        if (item.hasOwnProperty("_cdata")) return item["_cdata"];
+        return undefined;
+    }
+
     async getCategoryArticles(rootUrl: string, category: IRssFeedNewsCategory): Promise<INewsArticleDescriptor[]> {
 
         const items: INewsArticleDescriptor[] = [];
@@ -612,19 +714,29 @@ export abstract class RssFeedBasedNewsProvider<TConfig extends IRssFeedNewsProvi
         try {
             const obj = JSON.parse(convert.xml2json(xml, {compact: true}));
             if (obj.hasOwnProperty("rss")) {
-                for (let item of obj.rss.channel.item) {
+                const rawItems = Array.isArray(obj.rss.channel.item)
+                    ? obj.rss.channel.item
+                    : [obj.rss.channel.item].filter(Boolean);
+                for (let item of rawItems) {
+                    const summary = this.extractOptional(item.description);
                     items.push({
                         title: this.prompt(cleanXMLTitle(this.extract(item.title))),
-                        url: item.link["_text"]
+                        url: item.link["_text"],
+                        ...(summary ? {summary} : {}),
                     });
                 }
             }
 
             if (obj.hasOwnProperty("feed")) {
-                for (let item of obj.feed.entry) {
+                const rawEntries = Array.isArray(obj.feed.entry)
+                    ? obj.feed.entry
+                    : [obj.feed.entry].filter(Boolean);
+                for (let item of rawEntries) {
+                    const summary = this.extractOptional(item.summary) ?? this.extractOptional(item.content);
                     items.push({
                         title: this.prompt(this.extract(item.title)),
-                        url: item.link["_attributes"].href
+                        url: item.link["_attributes"].href,
+                        ...(summary ? {summary} : {}),
                     });
                 }
             }
@@ -662,21 +774,41 @@ export class ExternalNewsProvider extends RssFeedBasedNewsProvider {
         super(browser, config);
     }
 
+    private buildSummaryFallback(descriptor: INewsArticleDescriptor, fallbackExcerpt?: string): INewsArticle | null {
+        const rawSummary = descriptor.summary || fallbackExcerpt;
+        if (!rawSummary) return null;
+        const summaryText = stripHtmlToText(rawSummary);
+        if (!summaryText) return null;
+        return {
+            title: descriptor.title,
+            author: descriptor.author,
+            url: descriptor.url,
+            publicationDate: descriptor.publicationDate,
+            sections: [{
+                text: [summaryText],
+                kind: "paragraphs"
+            }]
+        };
+    }
+
     async getArticleWithMercury(descriptor: INewsArticleDescriptor): Promise<INewsArticle> {
 
         const cleanData = await this.browser.getWithMercury(descriptor.url);
 
-        if (typeof cleanData === "string") {
+        if (cleanData === "paywalled") {
+            return {
+                title: "Paywall",
+                url: descriptor.url,
+                sections: [{
+                    text: ["This article is paywalled, and can not be read at this time."],
+                    kind: "paragraphs"
+                }]
+            };
+        }
 
-            if (cleanData === "paywalled")
-                return {
-                    title: "Paywall",
-                    url: descriptor.url,
-                    sections: [{
-                        text: ["This article is paywalled, and can not be read at this time."],
-                        kind: "paragraphs"
-                    }]
-                };
+        if (!cleanData || typeof cleanData === "string") {
+            const summaryFallback = this.buildSummaryFallback(descriptor);
+            if (summaryFallback) return summaryFallback;
 
             voxmate.system.telemetry.error("Unable to get article for url: " + descriptor.url);
 
@@ -706,8 +838,13 @@ export class ExternalNewsProvider extends RssFeedBasedNewsProvider {
 
         const article = await extractor.getArticle(root, descriptor, this.browser);
 
+        if (article.sections.length === 0) {
+            const summaryFallback = this.buildSummaryFallback(descriptor, cleanData.excerpt);
+            if (summaryFallback) return summaryFallback;
+        }
+
         return {
-            title: cleanData.title,
+            title: cleanData.title || descriptor.title,
             author: cleanData.author ?? "Unknown Author",
             url: descriptor.url,
             publicationDate: date,
@@ -720,6 +857,9 @@ export class ExternalNewsProvider extends RssFeedBasedNewsProvider {
         const cleanData = await this.browser.getWithReadability(descriptor.url);
 
         if (cleanData == null) {
+            const summaryFallback = this.buildSummaryFallback(descriptor);
+            if (summaryFallback) return summaryFallback;
+
             voxmate.system.telemetry.error("Unable to get article for url: " + descriptor.url);
             return {
                 title: "Error",
@@ -743,9 +883,14 @@ export class ExternalNewsProvider extends RssFeedBasedNewsProvider {
 
         const article = await extractor.getArticle(root, descriptor, this.browser);
 
+        if (article.sections.length === 0) {
+            const summaryFallback = this.buildSummaryFallback(descriptor, cleanData.excerpt);
+            if (summaryFallback) return summaryFallback;
+        }
+
         return {
-            title: cleanData.title,
-            author: cleanData.byline ?? "Unknown Author",
+            title: cleanData.title || descriptor.title,
+            author: cleanData.byline || "Unknown Author",
             url: descriptor.url,
             sections: article.sections
         };
