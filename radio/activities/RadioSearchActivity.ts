@@ -1,15 +1,21 @@
 import {RichActivity} from "@voxmate/orc/RichActivity";
+import {useBackend} from "@voxmate/orc/backend";
 import {IStationDescriptor} from "../common/common.radio";
 import {RadioBrowseStationsActivity} from "./RadioBrowseStationsActivity";
 import {Sound} from "@voxmate/voxmate";
+
+abstract class RadioSearchBackendContract {
+    abstract search(input: { query: string }): Promise<{ Items?: any[] }>;
+}
 
 export class RadioSearchActivity extends RichActivity {
 
     async search(query: string): Promise<IStationDescriptor[]> {
         const stations: IStationDescriptor[] = [];
 
-        const result = await this.fhttp("voxlet_radio", "search", {"query": query});
-        for (let item of result.Items) {
+        const backend = useBackend<typeof RadioSearchBackendContract>();
+        const result = await backend.search({query});
+        for (let item of result?.Items ?? []) {
 
             if (item.ContainerType == "Stations") {
                 for (let child of item.Children) {

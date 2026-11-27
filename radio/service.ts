@@ -1,4 +1,5 @@
 import {Activity, IService} from "@voxmate/orc/orc";
+import {useBackend} from "@voxmate/orc/backend";
 import {
     IFavoriteStations,
     IRadioSettings,
@@ -9,9 +10,40 @@ import {
 } from "./common/common.radio";
 import {RadioStreamActivity} from "./activities/RadioStreamActivity";
 import {RichActivity} from "@voxmate/orc/RichActivity";
-import {Sound} from "@voxmate/voxmate";
+import voxmate, {Sound} from "@voxmate/voxmate";
 import {Rolodex} from "@voxmate/orc/rolodex";
 import {RadioMainActivity} from "./activities/RadioMainActivity";
+
+interface ResolvedStreamResponse {
+    compatible: boolean;
+    url?: string;
+    reliability?: number;
+    bitrate?: number;
+    media?: string;
+    isPlaylist?: boolean;
+}
+
+abstract class RadioBackendContract {
+    abstract resolveStreams(input: { guideId: string }): Promise<ResolvedStreamResponse>;
+}
+
+function extractStreamFromPlaylist(content: string): string | null {
+    const lines = content.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
+    // PLS format: File1=https://...
+    for (const line of lines) {
+        const match = /^file\d+\s*=\s*(https?:\/\/\S+)/i.exec(line);
+        if (match)
+            return match[1];
+    }
+    // M3U format: first non-comment HTTP(S) URL line
+    for (const line of lines) {
+        if (line.startsWith("#"))
+            continue;
+        if (/^https?:\/\//i.test(line))
+            return line;
+    }
+    return null;
+}
 
 export class RadioService implements IService {
 
@@ -21,17 +53,35 @@ export class RadioService implements IService {
 
     }
 
+    private async resolvePlaylistUrl(context: RichActivity, url: string): Promise<string> {
+        try {
+            const response = await context.wrap(voxmate.http.request(url, "GET", "", {}));
+            if (response.ok && response.content) {
+                const extracted = extractStreamFromPlaylist(response.content);
+                if (extracted)
+                    return extracted;
+            }
+        } catch (e) {
+            console.log("Failed to resolve playlist URL, falling back to original URL", e);
+        }
+        return url;
+    }
+
     private async getStationFromDescriptor(context: RichActivity, descriptor: IStationDescriptor): Promise<IStation | null> {
 
-        const station = await context.fhttp("voxlet_radio", "resolveStreams", {"guideId": descriptor.id}) as
-            { compatible: boolean, url: string };
+        const backend = useBackend<typeof RadioBackendContract>();
+        const station = await backend.resolveStreams({guideId: descriptor.id});
 
-        if (!station.compatible) {
+        if (!station || !station.compatible || !station.url) {
             await context.sayDynamicInfo(`Sorry, I am unable to get a compatible stream for ${descriptor.name}`);
             return null;
         }
 
-        return {...descriptor, url: station.url, group: ""};
+        const streamUrl = station.isPlaylist
+            ? await this.resolvePlaylistUrl(context, station.url)
+            : station.url;
+
+        return {...descriptor, url: streamUrl, group: ""};
     }
 
     async getFavoriteStations(): Promise<IFavoriteStations> {

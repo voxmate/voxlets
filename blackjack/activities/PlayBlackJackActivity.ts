@@ -304,10 +304,6 @@ export class PlayBlackJackActivity extends Activity {
                         stage = 2;
                         this.stand();
                     }
-
-                    if (ui.gesture === Gesture.Hat) {
-                        await this.describeState(0, 0, stage == 1);
-                    }
                 }
             } while (this.isActive);
 

@@ -70,8 +70,6 @@ export abstract class SudokuMapBaseActivity extends SudokuUIBaseActivity<any> {
 
                     } else if (ui.gesture === Gesture.DoubleTap) {
                         await this.descendInternal();
-                    } else if (ui.gesture === Gesture.Hat) {
-                        return;
                     }
 
                     if (ng.isOutsideBounds)

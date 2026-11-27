@@ -96,8 +96,6 @@ export abstract class VoxvilleMapBaseActivity extends VoxvilleUIBaseActivity<any
                     } else if (ui.gesture === Gesture.DoubleTap) {
                         await this.descendInternal();
                         bump = null;
-                    } else if (ui.gesture === Gesture.Hat) {
-                        return;
                     }
 
                     if (ng.isOutsideBounds)
